@@ -155,11 +155,17 @@ void mex_define_copiers(FILE* fp, const char* name)
   fprintf(fp, "mxWrapGetArrayDef(mxWrapGetArray_%s, %s)\n", name, name);
   fprintf(fp, "mxWrapCopyDef    (mxWrapCopy_%s,     %s)\n", name, name);
   fprintf(fp, "mxWrapReturnDef  (mxWrapReturn_%s,   %s)\n", name, name);
+
+  /* Single precision */
+  fprintf(fp, "mxWrapGetArrayDef(mxWrapGetArray_single_%s, %s)\n", name, name);
+  fprintf(fp, "mxWrapCopyDef    (mxWrapCopy_single_%s,     %s)\n", name, name);
+  fprintf(fp, "mxWrapReturnDef  (mxWrapReturn_single_%s,   %s)\n", name, name);
 }
 
 
 void mex_define_zcopiers(FILE* fp, const char* name, const char* ztype)
 {
+    /* Define complex copiers */
     fprintf(fp, 
             "mxWrapGetScalarZDef(mxWrapGetScalar_%s, %s,\n"
             "                    %s, setz_%s)\n", 
@@ -174,6 +180,24 @@ void mex_define_zcopiers(FILE* fp, const char* name, const char* ztype)
             name, name, name, name);
     fprintf(fp, 
             "mxWrapReturnZDef   (mxWrapReturn_%s, %s,\n"
+            "                    real_%s, imag_%s)\n", 
+            name, name, name, name);
+
+    /* Single precision */
+    fprintf(fp, 
+            "mxWrapGetScalarZDef(mxWrapGetScalar_single_%s, %s,\n"
+            "                    %s, setz_%s)\n", 
+            name, name, ztype, name);
+    fprintf(fp, 
+            "mxWrapGetArrayZDef (mxWrapGetArray_single_%s, %s,\n"
+            "                    %s, setz_%s)\n", 
+            name, name, ztype, name);
+    fprintf(fp, 
+            "mxWrapCopyZDef     (mxWrapCopy_single_%s, %s,\n"
+            "                    real_%s, imag_%s)\n", 
+            name, name, name, name);
+    fprintf(fp, 
+            "mxWrapReturnZDef   (mxWrapReturn_single_%s, %s,\n"
             "                    real_%s, imag_%s)\n", 
             name, name, name, name);
 }
