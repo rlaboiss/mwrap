@@ -319,6 +319,258 @@ mxArray* func(const T* q, mwSize m, mwSize n) \
     } \
 }
 
+
+
+
+
+
+void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
+{
+    void* p = NULL;
+#ifdef R2008OO
+    mxArray* ap;
+#endif
+    if (mxGetClassID(a) == mxSINGLE_CLASS && mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && (*mxGetComplexSingles(a)).real == 0 )
+        return NULL;
+    }
+    if (mxGetClassID(a) == mxSINGLE_CLASS && !mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && *mxGetSingles(a) == 0)
+        return NULL;
+    }
+    if (mxIsChar(a)) {
+        char pbuf[128];
+        mxGetString(a, pbuf, sizeof(pbuf));
+        sscanf(pbuf, fmt, &p);
+    } 
+#ifdef R2008OO
+    else if (ap = mxGetProperty(a, 0, "mwptr")) {
+        return mxWrapGetP(ap, fmt, e);
+    }
+#endif
+    if (p == 0)
+        *e = "Invalid pointer";
+    return p;
+}
+
+mxArray* mxWrapCreateP_single(void* p, const char* fmt)
+{
+    if (p == 0) {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *mxGetSingles(z) = 0;
+        return z;
+    } else {
+        char pbuf[128];
+        sprintf(pbuf, fmt, p);
+        return mxCreateString(pbuf);
+    }
+}
+
+mxArray* mxWrapStrncpy_single(const char* s)
+{
+    if (s) {
+        return mxCreateString(s);
+    } else {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *mxGetSingles(z) = 0;
+        return z;
+    }
+}
+
+char* mxWrapGetString_single(const mxArray* a, const char** e)
+{
+    char* s;
+    mwSize slen;
+    if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
+        *e = "Invalid string argument";
+        return NULL;
+    }
+    slen = mxGetM(a)*mxGetN(a) + 1;
+    s = (char*) mxMalloc(slen);
+    if (mxGetM(a)*mxGetN(a) == 0)
+        *s = 0;
+    else
+        mxGetString(a, s, slen);
+    return s;
+}
+
+
+float mxWrapGetScalar_single(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid scalar argument";
+        return 0;
+    }
+    if( mxIsComplex(a) )
+      return (float) (*mxGetComplexSingles(a)).real;
+    else
+      return (float) (*mxGetSingles(a));
+}
+
+#define mxWrapGetArrayDef_single(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* q; \
+    mxComplexSingle* z; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*z++).real;			\
+      } \
+    else \
+      {				   \
+	q = mxGetSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*q++);			\
+      } \
+    return array; \
+}
+
+
+#define mxWrapCopyDef_single(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p;	\
+    mxComplexSingle* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  (*z++).real = (float) *q++;	\
+	  (*z++).imag = 0;	\
+      } \
+    else \
+      {				   \
+	p = mxGetSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = (float) *q++;		\
+      } \
+}
+
+
+#define mxWrapReturnDef_single(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p; \
+    if (!q) { \
+        return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxREAL); \
+        p = mxGetSingles(a); \
+        for (i = 0; i < m*n; ++i) \
+	  *p++ = (float) *q++;	  \
+        return a; \
+    } \
+}
+
+
+#define mxWrapGetScalarZDef_single(func, T, ZT, setz)	\
+void func(T* z, const mxArray* a) \
+{ \
+    if( mxIsComplex(a) ) \
+      { \
+  setz(z, (ZT) (*mxGetComplexSingles(a)).real, (ZT) (*mxGetComplexSingles(a)).imag); \
+      } \
+    else \
+      {				   \
+  setz(z, (ZT) (*mxGetComplexSingles(a)).real, (ZT) 0);	\
+      } \
+}
+
+
+#define mxWrapGetArrayZDef_single(func, T, ZT, setz)      \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* q; \
+    mxComplexSingle* z; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < arraylen; ++i) {	\
+	  setz(p, (ZT) (*z).real, (ZT) (*z).imag);	\
+  	  ++p; ++z; }					\
+      } \
+    else \
+      {				   \
+	q = mxGetSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)	{	\
+	  setz(p, (ZT) (*q), (ZT) 0 );		\
+          ++p; ++q; }			\
+      }						\
+    return array; \
+}
+
+
+#define mxWrapCopyZDef_single(func, T, freal, fimag)	    \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p;	\
+    mxComplexSingle* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < n; ++i)	{		\
+          (*z).real = freal(*q);			\
+	  (*z).imag = fimag(*q);			\
+	  ++z; ++q; 	}			\
+      } \
+    else \
+      {				   \
+	p = mxGetSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = freal(*q++);		\
+      } \
+}
+
+
+#define mxWrapReturnZDef_single(func, T, freal, fimag)	      \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    mxComplexSingle* p; \
+    if (!q) { \
+        return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxCOMPLEX); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxCOMPLEX); \
+        p = mxGetComplexSingles(a); \
+        for (i = 0; i < m*n; ++i) {	  \
+          (*p).real = freal(*q);			\
+	  (*p).imag = fimag(*q);			\
+	  ++p; ++q; 	}			\
+        return a; \
+    } \
+}
+
+
+
 #else
 
 /*
@@ -525,15 +777,6 @@ mxArray* func(const T* q, mwSize m, mwSize n) \
 
 
 
-mxArray *mxCreateNumericArray_wrap(mwSize n, mwSize m,
-    mxClassID classid, mxComplexity ComplexFlag)
-{
-    mwSize ndim = 2;
-    mwSize dims[2];
-    dims[0] = n; dims[1] = m;
-    return mxCreateNumericArray(ndim, dims, classid, ComplexFlag);
-}
-
 
 void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
 {
@@ -542,7 +785,7 @@ void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
     mxArray* ap;
 #endif
     if (mxGetClassID(a) == mxSINGLE_CLASS && 
-        mxGetM(a)*mxGetN(a) == 1 && *mxGetPr(a) == 0)
+        mxGetM(a)*mxGetN(a) == 1 && *((float*)mxGetData(a)) == 0)
         return p;
     if (mxIsChar(a)) {
         char pbuf[128];
@@ -562,8 +805,8 @@ void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
 mxArray* mxWrapCreateP_single(void* p, const char* fmt)
 {
     if (p == 0) {
-        mxArray* z = mxCreateNumericArray_wrap(1,1, mxSINGLE_CLASS, mxREAL);
-        *mxGetPr(z) = 0;
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *((float*)mxGetData(z)) = 0;
         return z;
     } else {
         char pbuf[128];
@@ -576,8 +819,8 @@ mxArray* mxWrapStrncpy_single(const char* s)
     if (s) {
         return mxCreateString(s);
     } else {
-        mxArray* z = mxCreateNumericArray_wrap(1,1, mxSINGLE_CLASS, mxREAL);
-        *mxGetPr(z) = 0;
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *((float*)mxGetData(z)) = 0;
         return z;
     }
 }
@@ -588,7 +831,7 @@ float mxWrapGetScalar_single(const mxArray* a, const char** e)
         *e = "Invalid scalar argument";
         return 0;
     }
-    return *mxGetPr(a);
+    return *((float*)mxGetData(a));
 }
 
 char* mxWrapGetString_single(const mxArray* a, const char** e)
@@ -624,7 +867,7 @@ T* func(const mxArray* a, const char** e)     \
     arraylen = mxGetM(a)*mxGetN(a); \
     array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
     p = array; \
-    q = (float*) mxGetPr(a);	   \
+    q = (float*) mxGetData(a);	   \
     for (i = 0; i < arraylen; ++i) \
         *p++ = (T) (*q++); \
     return array; \
@@ -635,7 +878,7 @@ T* func(const mxArray* a, const char** e)     \
 void func(mxArray* a, const T* q, mwSize n) \
 { \
     mwIndex i; \
-    float* p = (float*)mxGetPr(a);		\
+    float* p = (float*) mxGetData(a);		\
     for (i = 0; i < n; ++i) \
         *p++ = *q++; \
 }
@@ -647,10 +890,10 @@ mxArray* func(const T* q, mwSize m, mwSize n) \
     mwIndex i; \
     float* p; \
     if (!q) { \
-      return mxCreateNumericArray_wrap(0,0, mxSINGLE_CLASS, mxREAL); \
+      return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxREAL); \
     } else { \
-        mxArray* a = mxCreateNumericArray_wrap(m,n, mxSINGLE_CLASS, mxREAL);\
-        p = (float*) mxGetPr(a);				\
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxREAL);\
+        p = (float*) mxGetData(a);				\
         for (i = 0; i < m*n; ++i) \
             *p++ = *q++; \
         return a; \
@@ -661,8 +904,8 @@ mxArray* func(const T* q, mwSize m, mwSize n) \
 #define mxWrapGetScalarZDef_single(func, T, ZT, setz) \
 void func(T* z, const mxArray* a) \
 { \
-    float* pr = mxGetPr(a); \
-    float* pi = mxGetPi(a); \
+    float* pr = (float*) mxGetData(a);		\
+    float* pi = (float*) mxGetImagData(a);		 \
     setz(z, (ZT) *pr, (pi ? (ZT) *pi : (ZT) 0)); \
 }
 
@@ -683,8 +926,8 @@ T* func(const mxArray* a, const char** e) \
     arraylen = mxGetM(a)*mxGetN(a); \
     array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
     p = array; \
-    qr = (float) mxGetPr(a);			\
-    qi = (float) mxGetPi(a);			\
+    qr = (float*) mxGetData(a);			\
+    qi = (float*) mxGetImagData(a);			\
     for (i = 0; i < arraylen; ++i) { \
         ZT val_qr = *qr++; \
         ZT val_qi = (qi ? (ZT) *qi++ : (ZT) 0); \
@@ -699,8 +942,8 @@ T* func(const mxArray* a, const char** e) \
 void func(mxArray* a, const T* q, mwSize n) \
 { \
     mwIndex i; \
-    float* pr = (float) mxGetPr(a);		\
-    float* pi = (float) mxGetPi(a);		\
+    float* pr = (float*) mxGetData(a);		\
+    float* pi = (float*) mxGetImagData(a);		\
     for (i = 0; i < n; ++i) { \
         *pr++ = real(*q); \
         *pi++ = imag(*q); \
@@ -716,11 +959,11 @@ mxArray* func(const T* q, mwSize m, mwSize n) \
     float* pr; \
     float* pi; \
     if (!q) { \
-      return mxCreateNumericArray_wrap(0,0, mxSINGLE_CLASS, mxCOMPLEX); \
+      return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxCOMPLEX); \
     } else { \
-        mxArray* a = mxCreateNumericArray_wrap(m,n, mxSINGLE_CLASS, mxCOMPLEX);\
-        pr = (float) mxGetPr(a);					\
-        pi = (float) mxGetPi(a);					\
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxCOMPLEX);\
+        pr = (float*) mxGetData(a);					\
+        pi = (float*) mxGetImagData(a);					\
         for (i = 0; i < m*n; ++i) { \
             *pr++ = real(*q); \
             *pi++ = imag(*q); \

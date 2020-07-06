@@ -157,9 +157,9 @@ void mex_define_copiers(FILE* fp, const char* name)
   fprintf(fp, "mxWrapReturnDef  (mxWrapReturn_%s,   %s)\n", name, name);
 
   /* Single precision */
-  fprintf(fp, "mxWrapGetArrayDef(mxWrapGetArray_single_%s, %s)\n", name, name);
-  fprintf(fp, "mxWrapCopyDef    (mxWrapCopy_single_%s,     %s)\n", name, name);
-  fprintf(fp, "mxWrapReturnDef  (mxWrapReturn_single_%s,   %s)\n", name, name);
+  fprintf(fp, "mxWrapGetArrayDef_single(mxWrapGetArray_single_%s, %s)\n", name, name);
+  fprintf(fp, "mxWrapCopyDef_single    (mxWrapCopy_single_%s,     %s)\n", name, name);
+  fprintf(fp, "mxWrapReturnDef_single  (mxWrapReturn_single_%s,   %s)\n", name, name);
 }
 
 
@@ -185,19 +185,19 @@ void mex_define_zcopiers(FILE* fp, const char* name, const char* ztype)
 
     /* Single precision */
     fprintf(fp, 
-            "mxWrapGetScalarZDef(mxWrapGetScalar_single_%s, %s,\n"
+            "mxWrapGetScalarZDef_single(mxWrapGetScalar_single_%s, %s,\n"
             "                    %s, setz_%s)\n", 
             name, name, ztype, name);
     fprintf(fp, 
-            "mxWrapGetArrayZDef (mxWrapGetArray_single_%s, %s,\n"
+            "mxWrapGetArrayZDef_single (mxWrapGetArray_single_%s, %s,\n"
             "                    %s, setz_%s)\n", 
             name, name, ztype, name);
     fprintf(fp, 
-            "mxWrapCopyZDef     (mxWrapCopy_single_%s, %s,\n"
+            "mxWrapCopyZDef_single     (mxWrapCopy_single_%s, %s,\n"
             "                    real_%s, imag_%s)\n", 
             name, name, name, name);
     fprintf(fp, 
-            "mxWrapReturnZDef   (mxWrapReturn_single_%s, %s,\n"
+            "mxWrapReturnZDef_single   (mxWrapReturn_single_%s, %s,\n"
             "                    real_%s, imag_%s)\n", 
             name, name, name, name);
 }
@@ -707,7 +707,31 @@ void mex_unpack_input_array(FILE* fp, Var* v)
 {
     fprintf(fp, "    if (mxGetM(prhs[%d])*mxGetN(prhs[%d]) != 0) {\n",
             v->input_label, v->input_label);
-    if (strcmp(v->basetype, "double") == 0 && v->iospec == 'i')
+    if (strcmp(v->basetype, "float") == 0)
+    if (v->iospec == 'i')
+        fprintf(fp,
+                "#if MX_HAS_INTERLEAVED_COMPLEX\n"
+                "        in%d_ = mxGetSingles(prhs[%d]);\n"
+                "#else\n"
+                "        in%d_ = (float*) mxGetData(prhs[%d]);\n"
+                "#endif\n",
+                v->input_label, v->input_label, v->input_label, v->input_label);
+    else
+        fprintf(fp, 
+                "        in%d_ = mxWrapGetArray_single_%s(prhs[%d], &mw_err_txt_);\n"
+                "        if (mw_err_txt_)\n"
+                "            goto mw_err_label;\n",
+                v->input_label, v->basetype, v->input_label);
+    else
+    if (strcmp(v->basetype, "fcomplex") == 0)
+        fprintf(fp, 
+                "        in%d_ = mxWrapGetArray_single_%s(prhs[%d], &mw_err_txt_);\n"
+                "        if (mw_err_txt_)\n"
+                "            goto mw_err_label;\n",
+                v->input_label, v->basetype, v->input_label);
+    else
+    if (strcmp(v->basetype, "double") == 0)
+    if (v->iospec == 'i')
         fprintf(fp,
                 "#if MX_HAS_INTERLEAVED_COMPLEX\n"
                 "        in%d_ = mxGetDoubles(prhs[%d]);\n"
@@ -715,6 +739,12 @@ void mex_unpack_input_array(FILE* fp, Var* v)
                 "        in%d_ = mxGetPr(prhs[%d]);\n"
                 "#endif\n",
                 v->input_label, v->input_label, v->input_label, v->input_label);
+    else
+        fprintf(fp, 
+                "        in%d_ = mxWrapGetArray_%s(prhs[%d], &mw_err_txt_);\n"
+                "        if (mw_err_txt_)\n"
+                "            goto mw_err_label;\n",
+                v->input_label, v->basetype, v->input_label);
     else
         fprintf(fp, 
                 "        in%d_ = mxWrapGetArray_%s(prhs[%d], &mw_err_txt_);\n"
@@ -1072,11 +1102,22 @@ void mex_marshal_array(FILE* fp, Var* v)
     if (!e) {
 
         // No dimension info -- must be an inout array
+        if (strcmp(v->basetype, "float") == 0 || strcmp(v->basetype, "fcomplex") == 0)
+	  {
+        fprintf(fp, "%splhs[%d] = mxCreateNumericMatrix("
+                "mxGetM(prhs[%d]), mxGetN(prhs[%d]), mxSINGLE_CLASS, %s);\n", ws, 
+                v->output_label, v->input_label, v->input_label, mtype);
+        fprintf(fp, "%smxWrapCopy_single_%s(plhs[%d], in%d_, ", ws, 
+                v->basetype, v->output_label, v->input_label);
+	  }
+	else
+	  {
         fprintf(fp, "%splhs[%d] = mxCreateDoubleMatrix("
                 "mxGetM(prhs[%d]), mxGetN(prhs[%d]), %s);\n", ws, 
                 v->output_label, v->input_label, v->input_label, mtype);
         fprintf(fp, "%smxWrapCopy_%s(plhs[%d], in%d_, ", ws, 
                 v->basetype, v->output_label, v->input_label);
+	  }
         fprintf(fp, "mxGetM(prhs[%d])*mxGetN(prhs[%d])",
                 v->input_label, v->input_label);
         fprintf(fp, ");\n");
@@ -1084,10 +1125,20 @@ void mex_marshal_array(FILE* fp, Var* v)
     } else if (!(e->next)) {
 
         // Only size given
+        if (strcmp(v->basetype, "float") == 0 || strcmp(v->basetype, "fcomplex") == 0)
+	  {
+        fprintf(fp, "%splhs[%d] = mxCreateNumericMatrix(dim%d_, 1, mxSINGLE_CLASS, %s);\n", ws,
+                v->output_label, e->input_label, mtype);
+        fprintf(fp, "%smxWrapCopy_single_%s(plhs[%d], %s, ", ws, 
+                v->basetype, v->output_label, vname(v, namebuf));
+	  }
+	else
+	  {
         fprintf(fp, "%splhs[%d] = mxCreateDoubleMatrix(dim%d_, 1, %s);\n", ws,
                 v->output_label, e->input_label, mtype);
         fprintf(fp, "%smxWrapCopy_%s(plhs[%d], %s, ", ws, 
                 v->basetype, v->output_label, vname(v, namebuf));
+	  }
         fprintf(fp, "dim%d_",
                 e->input_label);
         fprintf(fp, ");\n");
@@ -1095,11 +1146,22 @@ void mex_marshal_array(FILE* fp, Var* v)
     } else if (!(e->next->next)) {
 
         // Two dimensions given
+        if (strcmp(v->basetype, "float") == 0 || strcmp(v->basetype, "fcomplex") == 0)
+	  {
+        fprintf(fp, "%splhs[%d] = mxCreateNumericMatrix("
+                "dim%d_, dim%d_, mxSINGLE_CLASS, %s);\n", ws, 
+                v->output_label, e->input_label, e->next->input_label, mtype);
+        fprintf(fp, "%smxWrapCopy_single_%s(plhs[%d], %s, ", ws, 
+                v->basetype, v->output_label, vname(v, namebuf));
+	  }
+	else
+	  {
         fprintf(fp, "%splhs[%d] = mxCreateDoubleMatrix("
                 "dim%d_, dim%d_, %s);\n", ws, 
                 v->output_label, e->input_label, e->next->input_label, mtype);
         fprintf(fp, "%smxWrapCopy_%s(plhs[%d], %s, ", ws, 
                 v->basetype, v->output_label, vname(v, namebuf));
+	  }
         fprintf(fp, "dim%d_*dim%d_",
                 e->input_label, e->next->input_label);
         fprintf(fp, ");\n");
@@ -1107,12 +1169,24 @@ void mex_marshal_array(FILE* fp, Var* v)
     } else {
 
         // Three or more dimensions given -- punt and make it 1D
+        if (strcmp(v->basetype, "float") == 0 || strcmp(v->basetype, "fcomplex") == 0)
+	  {
+        fprintf(fp, "%splhs[%d] = mxCreateNumericMatrix(", ws, 
+                v->output_label);
+        mex_alloc_size(fp, e);
+        fprintf(fp, ", 1, mxSINGLE_CLASS, %s);\n", mtype);
+        fprintf(fp, "%smxWrapCopy_single_%s(plhs[%d], %s, ", ws, 
+                v->basetype, v->output_label, vname(v, namebuf));
+	  }
+	else
+	  {
         fprintf(fp, "%splhs[%d] = mxCreateDoubleMatrix(", ws, 
                 v->output_label);
         mex_alloc_size(fp, e);
         fprintf(fp, ", 1, %s);\n", mtype);
         fprintf(fp, "%smxWrapCopy_%s(plhs[%d], %s, ", ws, 
                 v->basetype, v->output_label, vname(v, namebuf));
+	  }
         mex_alloc_size(fp, e);
         fprintf(fp, ");\n");
 
