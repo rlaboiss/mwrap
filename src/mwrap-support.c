@@ -169,7 +169,7 @@ T* func(const mxArray* a, const char** e)     \
     double* q; \
     mxComplexDouble* z; \
     if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -254,7 +254,7 @@ T* func(const mxArray* a, const char** e)     \
     double* q; \
     mxComplexDouble* z; \
     if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -419,7 +419,7 @@ T* func(const mxArray* a, const char** e)     \
     float* q; \
     mxComplexSingle* z; \
     if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -504,7 +504,7 @@ T* func(const mxArray* a, const char** e)     \
     float* q; \
     mxComplexSingle* z; \
     if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -661,7 +661,7 @@ T* func(const mxArray* a, const char** e)     \
     T* p; \
     double* q; \
     if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -720,7 +720,7 @@ T* func(const mxArray* a, const char** e) \
     double* qr; \
     double* qi; \
     if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -839,7 +839,7 @@ char* mxWrapGetString_single(const mxArray* a, const char** e)
     char* s;
     mwSize slen;
     if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
-        *e = "Invalid string argument";
+        *e = "Invalid string argument, mxSINGLE_CLASS expected";
         return NULL;
     }
     slen = mxGetM(a)*mxGetN(a) + 1;
@@ -861,7 +861,7 @@ T* func(const mxArray* a, const char** e)     \
     T* p; \
     float* q; \
     if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \
@@ -920,7 +920,7 @@ T* func(const mxArray* a, const char** e) \
     float* qr; \
     float* qi; \
     if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
-        *e = "Invalid array argument"; \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
         return 0; \
     } \
     arraylen = mxGetM(a)*mxGetN(a); \

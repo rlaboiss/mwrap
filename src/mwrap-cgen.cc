@@ -710,12 +710,15 @@ void mex_unpack_input_array(FILE* fp, Var* v)
     if (strcmp(v->basetype, "float") == 0)
     if (v->iospec == 'i')
         fprintf(fp,
+                "        if( mxGetClassID(prhs[%d]) != mxSINGLE_CLASS )\n"
+		"            mw_err_txt_ = \"Invalid array argument, mxSINGLE_CLASS expected\";\n"
+		"        if (mw_err_txt_) goto mw_err_label;\n"
                 "#if MX_HAS_INTERLEAVED_COMPLEX\n"
                 "        in%d_ = mxGetSingles(prhs[%d]);\n"
                 "#else\n"
                 "        in%d_ = (float*) mxGetData(prhs[%d]);\n"
                 "#endif\n",
-                v->input_label, v->input_label, v->input_label, v->input_label);
+                v->input_label, v->input_label, v->input_label, v->input_label, v->input_label);
     else
         fprintf(fp, 
                 "        in%d_ = mxWrapGetArray_single_%s(prhs[%d], &mw_err_txt_);\n"
@@ -725,20 +728,36 @@ void mex_unpack_input_array(FILE* fp, Var* v)
     else
     if (strcmp(v->basetype, "fcomplex") == 0)
         fprintf(fp, 
+                "        if( mxGetClassID(prhs[%d]) != mxSINGLE_CLASS )\n"
+		"            mw_err_txt_ = \"Invalid array argument, mxSINGLE_CLASS expected\";\n"
+		"        if (mw_err_txt_) goto mw_err_label;\n"
                 "        in%d_ = mxWrapGetArray_single_%s(prhs[%d], &mw_err_txt_);\n"
                 "        if (mw_err_txt_)\n"
                 "            goto mw_err_label;\n",
-                v->input_label, v->basetype, v->input_label);
+                v->input_label, v->input_label, v->basetype, v->input_label);
     else
     if (strcmp(v->basetype, "double") == 0)
     if (v->iospec == 'i')
         fprintf(fp,
+                "        if( mxGetClassID(prhs[%d]) != mxDOUBLE_CLASS )\n"
+		"            mw_err_txt_ = \"Invalid array argument, mxDOUBLE_CLASS expected\";\n"
+                "        if (mw_err_txt_) goto mw_err_label;\n"
                 "#if MX_HAS_INTERLEAVED_COMPLEX\n"
                 "        in%d_ = mxGetDoubles(prhs[%d]);\n"
                 "#else\n"
                 "        in%d_ = mxGetPr(prhs[%d]);\n"
                 "#endif\n",
-                v->input_label, v->input_label, v->input_label, v->input_label);
+                v->input_label, v->input_label, v->input_label, v->input_label, v->input_label);
+    else
+    if (strcmp(v->basetype, "dcomplex") == 0)
+        fprintf(fp, 
+                "        if( mxGetClassID(prhs[%d]) != mxDOUBLE_CLASS )\n"
+		"            mw_err_txt_ = \"Invalid array argument, mxDOUBLE_CLASS expected\";\n"
+		"        if (mw_err_txt_) goto mw_err_label;\n"
+                "        in%d_ = mxWrapGetArray_%s(prhs[%d], &mw_err_txt_);\n"
+                "        if (mw_err_txt_)\n"
+                "            goto mw_err_label;\n",
+                v->input_label, v->input_label, v->basetype, v->input_label);
     else
         fprintf(fp, 
                 "        in%d_ = mxWrapGetArray_%s(prhs[%d], &mw_err_txt_);\n"
