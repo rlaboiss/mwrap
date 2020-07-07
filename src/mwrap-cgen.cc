@@ -151,6 +151,9 @@ void mex_define_copiers(FILE* fp, const char* name)
   if( (strcmp(name, "uint32_t") == 0 ) && ( mw_use_uint32_t == 0 ) ) return;
   if( (strcmp(name, "uint64_t") == 0 ) && ( mw_use_uint64_t == 0 ) ) return;
 
+  if( (strcmp(name, "longlong") == 0 ) && ( mw_use_longlong == 0 ) ) return;
+  if( (strcmp(name, "ulonglong") == 0 ) && ( mw_use_ulonglong == 0 ) ) return;
+
   /* Define copiers */
   fprintf(fp, "mxWrapGetArrayDef(mxWrapGetArray_%s, %s)\n", name, name);
   fprintf(fp, "mxWrapCopyDef    (mxWrapCopy_%s,     %s)\n", name, name);

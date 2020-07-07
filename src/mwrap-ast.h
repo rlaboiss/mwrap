@@ -142,6 +142,8 @@ extern int mw_use_int32_t;
 extern int mw_use_int64_t;
 extern int mw_use_uint32_t;
 extern int mw_use_uint64_t;
+extern int mw_use_longlong;
+extern int mw_use_ulonglong;
 
 #endif /* MWRAP_AST_H */
 
