@@ -820,16 +820,53 @@ void mex_unpack_inputs(FILE* fp, Var* v)
     else if (v->tinfo == VT_scalar ||
              v->tinfo == VT_r_scalar || 
              v->tinfo == VT_p_scalar)
+      {
+	if ( strcmp(v->basetype,"float") == 0 ) 
+        fprintf(fp,
+                "    if( mxGetClassID(prhs[%d]) != mxSINGLE_CLASS )\n"
+		"        mw_err_txt_ = \"Invalid scalar argument, mxSINGLE_CLASS expected\";\n"
+		"    if (mw_err_txt_) goto mw_err_label;\n"
+                "    in%d_ = (%s) mxWrapGetScalar_single(prhs[%d], &mw_err_txt_);\n"
+                "    if (mw_err_txt_)\n"
+                "        goto mw_err_label;\n",
+                v->input_label, v->input_label, v->basetype, v->input_label);
+	else
         fprintf(fp, 
+                "    if( mxGetClassID(prhs[%d]) != mxDOUBLE_CLASS )\n"
+		"        mw_err_txt_ = \"Invalid scalar argument, mxDOUBLE_CLASS expected\";\n"
+		"    if (mw_err_txt_) goto mw_err_label;\n"
                 "    in%d_ = (%s) mxWrapGetScalar(prhs[%d], &mw_err_txt_);\n"
                 "    if (mw_err_txt_)\n"
                 "        goto mw_err_label;\n",
-                v->input_label, v->basetype, v->input_label);
+                v->input_label, v->input_label, v->basetype, v->input_label);
+      }
     else if (v->tinfo == VT_cscalar   || v->tinfo == VT_zscalar   ||
              v->tinfo == VT_r_cscalar || v->tinfo == VT_r_zscalar ||
              v->tinfo == VT_p_cscalar || v->tinfo == VT_p_zscalar)
-        fprintf(fp, "    mxWrapGetScalar_%s(&in%d_, prhs[%d]);\n",
-                v->basetype, v->input_label, v->input_label);
+      {
+	if ( strcmp(v->basetype,"fcomplex") == 0 ) 
+	  {
+	    fprintf(fp,
+		    "    if( mxGetClassID(prhs[%d]) != mxSINGLE_CLASS )\n"
+		    "        mw_err_txt_ = \"Invalid scalar argument, mxSINGLE_CLASS expected\";\n"
+		    "    if (mw_err_txt_) goto mw_err_label;\n",
+		    v->input_label);
+	    fprintf(fp,
+		    "    mxWrapGetScalar_single_%s(&in%d_, prhs[%d]);\n",
+		    v->basetype, v->input_label, v->input_label);
+	  }
+	else
+	  {
+	    fprintf(fp,
+		    "    if( mxGetClassID(prhs[%d]) != mxDOUBLE_CLASS )\n"
+		    "        mw_err_txt_ = \"Invalid scalar argument, mxDOUBLE_CLASS expected\";\n"
+		    "    if (mw_err_txt_) goto mw_err_label;\n",
+		    v->input_label);
+	    fprintf(fp,
+		    "    mxWrapGetScalar_%s(&in%d_, prhs[%d]);\n",
+		    v->basetype, v->input_label, v->input_label);
+	  }
+      }
     else if (v->tinfo == VT_string)
         mex_unpack_input_string(fp, v);
     else if (v->tinfo == VT_mx)
