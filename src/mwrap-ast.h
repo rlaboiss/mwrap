@@ -129,6 +129,9 @@ void print(FILE* fp, Func* func);
 void print_matlab_call(FILE* fp, Func* func, const char* mexfunc);
 void print_mex_file(FILE* fp, Func* f);
 
+void mex_c99_complex(FILE* fp);
+void mex_cpp_complex(FILE* fp);
+
 void destroy(Func* func);
 void destroy(InheritsDecl* ilist);
 void destroy_inherits();
