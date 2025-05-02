@@ -2,7 +2,7 @@ include ../make.inc
 
 all: test_transfers test_cpp_complex $(TESTC99COMPLEX) test_syntax \
 	test_typecheck test_catch test_fortran1 test_fortran2 \
-	test_redirect test_include test_single_cpp
+	test_redirect test_include test_single_cpp test_char_cpp
 # run the tests...
 	octave-cli --no-init-file --quiet test_all.m
 
@@ -68,6 +68,19 @@ test_include:
 		-m test_include.m test_include.mw
 	$(MEX) test_includemex.cc
 
+# these two are tested by test_char.m ...
+test_char_cpp: 
+	../mwrap -cppcomplex -mex test_charmex \
+		-c test_charmex.cc \
+		-mb test_char.mw
+	$(MEX) test_charmex.cc
+
+test_char_c99: 
+	../mwrap -mex test_charmex \
+		-c test_charmex.c \
+		-mb test_char.mw
+	$(MEX) test_charmex.c
+
 # these last two are tested by test_single.m ...
 test_single_cpp: 
 	../mwrap -cppcomplex -mex test_singlemex \
@@ -81,6 +94,21 @@ test_single_c99:
 		-mb test_single.mw
 	$(MEX) test_singlemex.c
 
+test_gpu:
+	../mwrap -gpu -list -cppcomplex -mb -mex test_gpu -c test_gpu.cu test_gpu.mw
+
+test_gpu_complex:
+	../mwrap -gpu -list -cppcomplex -mb -mex test_gpu_complex -c test_gpu_complex.cu test_gpu_complex.mw
+
+test_gpu_int32:
+	../mwrap -gpu -list -cppcomplex -mb -mex test_gpu_int32 -c test_gpu_int32.cu test_gpu_int32.mw
+
+test_cpu:
+	../mwrap -list -cppcomplex -mb -mex test_cpu -c test_cpu.cc test_cpu.mw
+
+test_cpu_int32:
+	../mwrap -list -cppcomplex -mb -mex test_cpu_int32 -c test_cpu_int32.cc test_cpu_int32.mw
+
 clean:
 	rm -f *~ *.mex* *.o* test_typecheck.log
 	rm -f test_fortran1.m test_fortran2.m test_transfers.m test_catch.m
@@ -91,3 +119,5 @@ clean:
 	rm -f test_singlemex.c test_singlemex.cc
 	rm -f add.m addf.m addz.m addc.m 
 	rm -f arradd.m arraddf.m arraddz.m arraddc.m 
+	rm -f test_charmex.c test_charmex.cc
+	rm -f addchar.m arraddchar.m 
