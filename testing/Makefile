@@ -110,8 +110,9 @@ test_cpu_int32:
 	../mwrap -list -cppcomplex -mb -mex test_cpu_int32 -c test_cpu_int32.cc test_cpu_int32.mw
 
 clean:
-	rm -f *~ *.mex* *.o* test_typecheck.log
+	rm -f *~ *.mex* *.o* test_typecheck.log test_syntax.log
 	rm -f test_fortran1.m test_fortran2.m test_transfers.m test_catch.m
+	rm -f test_fortran1mex.cc test_fortran2mex.c
 	rm -f test_cpp_complex.m test_c99_complex.m
 	rm -f test_transfersmex.cc test_catchmex.cc test_fortranmex.cc
 	rm -f test_cpp_complexmex.cc test_c99_complexmex.c 
@@ -119,5 +120,6 @@ clean:
 	rm -f test_singlemex.c test_singlemex.cc
 	rm -f add.m addf.m addz.m addc.m 
 	rm -f arradd.m arraddf.m arraddz.m arraddc.m 
+	rm -f test_include.m test_includemex.cc
 	rm -f test_charmex.c test_charmex.cc
 	rm -f addchar.m arraddchar.m 
