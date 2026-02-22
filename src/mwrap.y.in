@@ -261,7 +261,11 @@ char* mwrap_strdup(const char* s)
     return result;
 }
 
-const char* help_string = 
+const char* usage_string =
+"Usage: mwrap [-mex outputmex] [-m output.m] [-c outputmex.c] infile1 ...\n"
+"Try 'mwrap --help' for more information.\n";
+
+const char* help_string =
 "mwrap 1.2 - MEX file generator for MATLAB and Octave\n"
 "\n"
 "Syntax:\n"
@@ -291,27 +295,33 @@ int main(int argc, char** argv)
         return 0;
     } else {
         bool emitted_mex_init = false;
+        const char* mfile = NULL;
+        const char* cfile = NULL;
 
         for (j = 1; j < argc; ++j) {
+            if (strcmp(argv[j], "--help") == 0) {
+                fprintf(stderr, "%s", help_string);
+                return 0;
+            }
             if (strcmp(argv[j], "-m") == 0 && j+1 < argc)
-                outfp = fopen(argv[j+1], "w+");
-            if (strcmp(argv[j], "-c") == 0 && j+1 < argc)
-                outcfp = fopen(argv[j+1], "w+");
-            if (strcmp(argv[j], "-mex") == 0 && j+1 < argc)
-                mexfunc = argv[j+1];
-            if (strcmp(argv[j], "-mb") == 0)
+                mfile = argv[++j];
+            else if (strcmp(argv[j], "-c") == 0 && j+1 < argc)
+                cfile = argv[++j];
+            else if (strcmp(argv[j], "-mex") == 0 && j+1 < argc)
+                mexfunc = argv[++j];
+            else if (strcmp(argv[j], "-mb") == 0)
                 mbatching_flag = 1;
-            if (strcmp(argv[j], "-list") == 0)
+            else if (strcmp(argv[j], "-list") == 0)
                 listing_flag = 1;
-            if (strcmp(argv[j], "-catch") == 0)
+            else if (strcmp(argv[j], "-catch") == 0)
                 mw_generate_catch = true;
-            if (strcmp(argv[j], "-i8") == 0)
+            else if (strcmp(argv[j], "-i8") == 0)
                 mw_promote_int = 4;
-            if (strcmp(argv[j], "-c99complex") == 0) 
+            else if (strcmp(argv[j], "-c99complex") == 0)
                 mw_use_c99_complex = true;
-            if (strcmp(argv[j], "-cppcomplex") == 0) 
+            else if (strcmp(argv[j], "-cppcomplex") == 0)
                 mw_use_cpp_complex = true;
-            if (strcmp(argv[j], "-gpu") == 0)
+            else if (strcmp(argv[j], "-gpu") == 0)
                 mw_use_gpu = true;
         }
 
@@ -319,6 +329,37 @@ int main(int argc, char** argv)
             add_zscalar_type("dcomplex");
             add_cscalar_type("fcomplex");
         }
+
+        /* Pre-scan: count input files before opening any output files */
+        int yyin_count = 0;
+        for (j = 1; j < argc; ++j) {
+            if (strcmp(argv[j], "-m") == 0 ||
+                strcmp(argv[j], "-c") == 0 ||
+                strcmp(argv[j], "-mex") == 0)
+                ++j;
+            else if (strcmp(argv[j], "--help") == 0 ||
+                     strcmp(argv[j], "-mb") == 0 ||
+                     strcmp(argv[j], "-list") == 0 ||
+                     strcmp(argv[j], "-catch") == 0 ||
+                     strcmp(argv[j], "-i8") == 0 ||
+                     strcmp(argv[j], "-c99complex") == 0 ||
+                     strcmp(argv[j], "-cppcomplex") == 0 ||
+                     strcmp(argv[j], "-gpu") == 0)
+                ;
+            else
+                ++yyin_count;
+        }
+
+        if (yyin_count == 0) {
+            fprintf(stderr, "%s", usage_string);
+            return 0;
+        }
+
+        /* Now safe to open output files */
+        if (mfile)
+            outfp = fopen(mfile, "w+");
+        if (cfile)
+            outcfp = fopen(cfile, "w+");
 
         for (j = 1; j < argc; ++j) {
             if (strcmp(argv[j], "-m") == 0 ||
@@ -328,10 +369,11 @@ int main(int argc, char** argv)
             else if (strcmp(argv[j], "-mb") == 0 ||
                      strcmp(argv[j], "-list") == 0 ||
                      strcmp(argv[j], "-catch") == 0 ||
-		     strcmp(argv[j], "-i8") == 0 ||
+                     strcmp(argv[j], "-i8") == 0 ||
                      strcmp(argv[j], "-c99complex") == 0 ||
                      strcmp(argv[j], "-cppcomplex") == 0 ||
-                     strcmp(argv[j], "-gpu") == 0);
+                     strcmp(argv[j], "-gpu") == 0)
+                ;
             else {
                 linenum = 1;
                 type_errs = 0;
@@ -348,7 +390,7 @@ int main(int argc, char** argv)
                     fprintf(stderr, "Could not read %s\n", argv[j]);
                 }
                 if (type_errs)
-                    fprintf(stderr, "%s: %d type errors detected\n", 
+                    fprintf(stderr, "%s: %d type errors detected\n",
                             argv[j], type_errs);
                 err_flag += type_errs;
             }
