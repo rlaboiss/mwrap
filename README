@@ -126,9 +126,10 @@ Contributors: Manas Rachh, Zydrunas Gimbutas.
     Add support for gfortran -fno-underscoring flag
 
 Version 1.2 (2025)
-Contributors:  Libin Lu, Rafael Laboissière, Zydrunas Gimbutas.
+Contributors:  Libin Lu, Rafael Laboissière, Marco Barbone, Zydrunas Gimbutas.
     Cope with error verbose directive in both versions 2 and 3 of Bison
     Add support for Matlab gpuArray
     Add support for char scalar
+    Add CMake build system and GitHub Actions CI
 
 Also see https://github.com/zgimbutas/mwrap/tags
