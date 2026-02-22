@@ -131,5 +131,6 @@ Contributors:  Libin Lu, Rafael Laboissière, Marco Barbone, Zydrunas Gimbutas.
     Add support for Matlab gpuArray
     Add support for char scalar
     Add CMake build system and GitHub Actions CI
+    Validate input files before processing to prevent data loss
 
 Also see https://github.com/zgimbutas/mwrap/tags
