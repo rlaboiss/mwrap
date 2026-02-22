@@ -14,13 +14,13 @@ x = 1/3; ce = x+x; xs = single(x);
 try
 c = addchar(xs,xs);   % should error
 catch ME
-  assert(ME.message=='test_charmex: Invalid scalar argument, mxCHAR_CLASS expected')
+  assert(~isempty(strfind(ME.message,'Invalid scalar argument, mxCHAR_CLASS expected')))
 end
 
 a = '1'; b = '2'; ce = a+b;
 c = addchar(a,b);
 assert(norm(c-ce)<tol)
-assert(class(c)=='double')
+assert(strcmp(class(c),'double'))
 
 
 
@@ -33,12 +33,12 @@ x = x*ones(3,1); ce=x+x; xf = single(x);
 try
 c = arraddchar(xf,xf);   % should error
 catch ME
-  assert(ME.message=='test_charmex: Invalid array argument, mxCHAR_CLASS expected');
+  assert(~isempty(strfind(ME.message,'Invalid array argument, mxCHAR_CLASS expected')));
 end
 
 a = '12'; b = '23'; ce = a+b;
 c = vecaddchar(a,b);
 assert(abs(c-ce)<tol)
-assert(class(c)=='double')
+assert(strcmp(class(c),'double'))
 
 end
