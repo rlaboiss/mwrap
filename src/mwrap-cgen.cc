@@ -474,7 +474,7 @@ void mex_casting_getter(FILE* fp, const char* cname,
             "    if (mxGetClassID(a) == mxDOUBLE_CLASS &&\n"
             "        mxGetM(a)*mxGetN(a) == 1 &&\n"
             "#if MX_HAS_INTERLEAVED_COMPLEX\n"
-	    "        ((mxIsComplex(a) ? *mxGetComplexDoubles(a) == 0 : *mxGetDoubles(a) == 0)\n"
+	    "        ((mxIsComplex(a) ? ((*mxGetComplexDoubles(a)).real == 0 && (*mxGetComplexDoubles(a)).imag == 0) : *mxGetDoubles(a) == 0))\n"
 	    "#else\n"
 	    "        *mxGetPr(a) == 0\n"
 	    "#endif\n"
@@ -583,7 +583,7 @@ void mex_declare_in_args(FILE* fp, Var* v)
 {
     if (!v)
         return;
-    if ((v->iospec == 'i' || v->iospec == 'b') && v->tinfo != VT_const) {
+    if (v->iospec != 'o' && v->tinfo != VT_const) {
         char typebuf[128];
         mex_declare_type(typebuf, v);
         if (is_array(v->tinfo) || is_obj(v->tinfo) || v->tinfo == VT_string) {
@@ -1434,14 +1434,16 @@ void mex_marshal_result(FILE* fp, Var* v, bool return_flag)
         fprintf(fp,
 		"#if MX_HAS_INTERLEAVED_COMPLEX\n"
                 "    plhs[%d] = mxCreateDoubleMatrix(1, 1, mxCOMPLEX);\n"
-                "    *mxGetComplexDoubles(plhs[%d]) = %s;\n"
+                "    mxGetComplexDoubles(plhs[%d])->real = real_%s(%s);\n"
+                "    mxGetComplexDoubles(plhs[%d])->imag = imag_%s(%s);\n"
 		"#else\n"
                 "    plhs[%d] = mxCreateDoubleMatrix(1, 1, mxCOMPLEX);\n"
                 "    *mxGetPr(plhs[%d]) = real_%s(%s);\n"
                 "    *mxGetPi(plhs[%d]) = imag_%s(%s);\n"
 		"#endif\n",
                 v->output_label,
-                v->output_label, vname(v, namebuf),
+                v->output_label, v->basetype, vname(v, namebuf),
+                v->output_label, v->basetype, vname(v, namebuf),
                 v->output_label,
                 v->output_label, v->basetype, vname(v, namebuf),
                 v->output_label, v->basetype, vname(v, namebuf));
@@ -1607,6 +1609,42 @@ void print_mex_stubs(FILE* fp, Func* f)
 }
 
 
+void print_mex_stub_table(FILE* fp, Func* f)
+{
+    /* Build map: id -> stub_id.  Functions on same_next chains share
+     * the stub of the primary function in the next chain. */
+    int maxid = 0;
+    map<int, int> id_to_stub;
+    for (Func* fcall = f; fcall; fcall = fcall->next) {
+        id_to_stub[fcall->id] = fcall->id;
+        if (fcall->id > maxid) maxid = fcall->id;
+        for (Func* fsame = fcall->same_next; fsame; fsame = fsame->same_next) {
+            id_to_stub[fsame->id] = fcall->id;
+            if (fsame->id > maxid) maxid = fsame->id;
+        }
+    }
+
+    if (maxid <= 0)
+        return;
+
+    fprintf(fp,
+            "typedef void (*mwStubFunc_t)(int nlhs, mxArray* plhs[],\n"
+            "                             int nrhs, const mxArray* prhs[]);\n\n"
+            "static mwStubFunc_t mwStubs_[] = {\n"
+            "    NULL");
+    for (int i = 1; i <= maxid; i++) {
+        fprintf(fp, ",\n");
+        map<int,int>::iterator it = id_to_stub.find(i);
+        if (it != id_to_stub.end())
+            fprintf(fp, "    mexStub%d", it->second);
+        else
+            fprintf(fp, "    NULL");
+    }
+    fprintf(fp, "\n};\n\n");
+    fprintf(fp, "static int mwNumStubs_ = %d;\n\n", maxid);
+}
+
+
 void print_mex_else_cases(FILE* fp, Func* f)
 {
     for (Func* fcall = f; fcall; fcall = fcall->next)
@@ -1666,14 +1704,23 @@ const char* mexBase =
     "void mexFunction(int nlhs, mxArray* plhs[],\n"
     "                 int nrhs, const mxArray* prhs[])\n"
     "{\n"
-    "    char id[1024];\n"
     "    if (nrhs == 0) {\n"
     "        mexPrintf(\"Mex function installed\\n\");\n"
+    "        return;\n"
+    "    }\n\n"
+    "    /* Fast path: integer stub ID */\n"
+    "    if (!mxIsChar(prhs[0])) {\n"
+    "        int stub_id = (int) mxGetScalar(prhs[0]);\n"
+    "        if (stub_id > 0 && stub_id <= mwNumStubs_ && mwStubs_[stub_id])\n"
+    "            mwStubs_[stub_id](nlhs, plhs, nrhs-1, prhs+1);\n"
+    "        else\n"
+    "            mexErrMsgTxt(\"Unknown function ID\");\n"
     "        return;\n"
     "    }\n\n";
 
 
 const char* mexBaseIf =
+    "    char id[1024];\n"
     "    if (mxGetString(prhs[0], id, sizeof(id)) != 0)\n"
     "        mexErrMsgTxt(\"Identifier should be a string\");\n";
 
@@ -1738,6 +1785,8 @@ void print_mex_init(FILE* fp)
 void print_mex_file(FILE* fp, Func* f)
 {
 
+    if (mw_use_int32_t || mw_use_int64_t || mw_use_uint32_t || mw_use_uint64_t)
+        fprintf(fp, "#include <stdint.h>\n\n");
     mex_define_copiers(fp);
     mex_casting_getters(fp);
 
@@ -1747,6 +1796,7 @@ void print_mex_file(FILE* fp, Func* f)
     }
 
     print_mex_stubs(fp, f);
+    print_mex_stub_table(fp, f);
     fprintf(fp, "%s", mexBase);
     fprintf(fp, "\n");
     if (mw_use_gpu)

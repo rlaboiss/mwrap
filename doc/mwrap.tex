@@ -12,7 +12,7 @@
 \newcommand{\mwrap}{\textsc{MWrap}}
 \newcommand{\gOR}{ $|$ }
 
-\title{\mwrap\ User Guide\\ Version 1.2}
+\title{\mwrap\ User Guide\\ Version 1.3}
 \author{D.~Bindel, A.~Barnett, Z.~Gimbutas, M.~Rachh, L.~Lu, R.~Laboissi\`ere}
 
 \pagestyle{fancy}
@@ -253,11 +253,12 @@ variable.
              & {\tt new} {\it class-id}
 \vspace{5mm} \\
   args       & arg {\tt ,} arg {\tt ,} $\ldots$ \gOR\ $\epsilon$ \\
-  arg        & iospec type {\it var-id} \\
-             & ispec  type {\it value} \\
-  returnvar  & type {\it var-id} 
+  arg        & devicespec iospec type {\it var-id} \\
+             & devicespec ispec  type {\it value} \\
+  returnvar  & type {\it var-id}
 \vspace{5mm} \\
-  iospec     & {\tt input} \gOR\ {\tt output} \gOR\ {\tt inout} \gOR\ 
+  devicespec & {\tt cpu} \gOR\ {\tt gpu} \gOR\ $\epsilon$ \\
+  iospec     & {\tt input} \gOR\ {\tt output} \gOR\ {\tt inout} \gOR\
                $\epsilon$ \\
   ispec      & {\tt input} \gOR\ $\epsilon$ \\
   type       & {\it type-id} \gOR 
@@ -528,6 +529,36 @@ for {\tt char} types and forces type checking. An error {\tt 'Invalid
 mismatched Matlab variable is detected during runtime. The user is
 expected to perform the required type conversions manually using {\tt
   char} MATLAB command.
+
+
+\subsection{GPU array passing}
+\label{gpu-section}
+
+When the {\tt -gpu} flag is specified, \mwrap\ adds support for
+MATLAB {\tt gpuArray} objects.  The {\tt gpu} device specifier can be
+placed before the usual {\tt input}, {\tt output}, or {\tt inout}
+keywords to indicate that an array argument resides on the GPU:
+\begin{verbatim}
+  # func(gpu input double[n] x, gpu output double[n] y, int n);
+\end{verbatim}
+
+For GPU input arrays, \mwrap\ verifies that the argument is a {\tt
+  gpuArray}, then obtains a read-only device pointer via {\tt
+  mxGPUGetDataReadOnly}.  For GPU output arrays, \mwrap\ creates a
+new {\tt mxGPUArray} with {\tt mxGPUCreateGPUArray} and obtains a
+writable device pointer via {\tt mxGPUGetData}.  For GPU inout
+arrays, the input device pointer is reused and the same {\tt
+  mxGPUArray} is returned as output.
+
+The {\tt gpu} specifier may be freely combined with ordinary (CPU)
+arguments in the same function call, allowing mixed host/device
+interfaces.  The {\tt -gpu} flag causes \mwrap\ to emit {\tt
+  \#include <gpu/mxGPUArray.h>} and a call to {\tt mxInitGPU()} in
+the MEX initialization code.  The MEX file must be compiled with
+MATLAB's GPU-enabled {\tt mex} compiler ({\tt nvmex} or {\tt mex}
+with CUDA support).
+
+The default device specifier is {\tt cpu}, which can be omitted.
 
 
 \section{Example}

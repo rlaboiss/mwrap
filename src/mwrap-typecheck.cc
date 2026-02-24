@@ -318,16 +318,16 @@ int typecheck_args(Var* v, int line)
         fprintf(stderr, "Error (%d): ", line);
         fprintf(stderr, "Object %s cannot be output\n", v->name);
         ++err;
-    } else if ((v->tinfo == VT_array || 
+    } else if ((v->tinfo == VT_array ||
                 v->tinfo == VT_carray ||
                 v->tinfo == VT_zarray ||
-                v->tinfo == VT_rarray) && 
-               v->iospec == 'o' && 
+                v->tinfo == VT_rarray) &&
+               v->iospec == 'o' &&
                !(v->qual && v->qual->args)) {
         fprintf(stderr, "Error (%d): ", line);
         fprintf(stderr, "Output array %s must have dims\n", v->name);
         ++err;
-    } else if (v->tinfo == VT_rarray && v->iospec != 'o') {
+    } else if (v->tinfo == VT_rarray && v->iospec != 'o' && v->iospec != 'b') {
         fprintf(stderr, "Error (%d): ", line);
         fprintf(stderr, "Array ref %s *must* be output\n", v->name);
         ++err;
