@@ -57,5 +57,4 @@ clean:
 	rm -f stringify
 
 realclean: clean
-	rm -f mwrap.y lex.yy.c mwrap.cc mwrap.hh mwrap-support.h mwrap.pdf
-
+	rm -f mwrap.y lex.yy.c mwrap.cc mwrap.hh mwrap-support.h
